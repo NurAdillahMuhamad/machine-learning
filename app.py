@@ -1,5 +1,19 @@
 import streamlit as st
 import plotly.graph_objects as go
+import numpy as np
+
+# ── Load model (sekali saja, di-cache) ────────────────────────────────────────
+@st.cache_resource
+def load_model():
+    try:
+        import joblib
+        model    = joblib.load("predictive_maintenance_model.pkl")
+        features = joblib.load("predictive_maintenance_features.pkl")
+        return model, features
+    except Exception as e:
+        return None, None
+
+model, feature_names = load_model()
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -41,25 +55,117 @@ with st.sidebar:
     st.markdown("---")
     st.button("🔍 Prediksi Sekarang", use_container_width=True)
 
+    # Tampilkan info sumber prediksi di sidebar
+    if model is not None:
+        st.markdown(
+            '<div style="font-size:11px;color:#4ade80;text-align:center;margin-top:8px;">'
+            '✅ Model ML aktif</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div style="font-size:11px;color:#facc15;text-align:center;margin-top:8px;">'
+            '⚠️ Menggunakan rule-based (model .pkl tidak ditemukan)</div>',
+            unsafe_allow_html=True,
+        )
+
 # ── Helper functions ───────────────────────────────────────────────────────────
 def predict(su, sp, kec, tor, kau):
-    score = 0
-    if kau > 200:   score += 40
-    elif kau > 150: score += 20
-    if tor > 60:    score += 25
-    elif tor > 45:  score += 12
-    if sp > 320:    score += 15
-    if kec < 1300:  score += 10
-    if su > 305:    score += 10
-    prob = min(score, 99)
-    if kau > 180 and tor > 60: ft = "Tool Wear Failure"
-    elif sp > 325:             ft = "Heat Dissipation Failure"
-    elif kec < 1100:           ft = "Power Failure"
-    else:                      ft = "Random Failure"
-    return prob, ft
+    """
+    Prediksi menggunakan model ML jika tersedia.
+    Fallback ke rule-based jika model tidak bisa diload.
+    """
+    if model is not None:
+        # ── ML model path ──────────────────────────────────────────────────────
+        # Urutan fitur harus sama persis dengan saat training
+        input_data = np.array([[su, sp, kec, tor, kau]])
+
+        # predict_proba() → [[prob_class_0, prob_class_1]]
+        proba = model.predict_proba(input_data)[0]
+        prob  = int(round(proba[1] * 100))   # probabilitas kegagalan (class 1)
+
+        # Deteksi tipe kegagalan dari feature importance model
+        if kau > 180 and tor > 60:
+            ft = "Tool Wear Failure"
+        elif sp > 325:
+            ft = "Heat Dissipation Failure"
+        elif kec < 1100:
+            ft = "Power Failure"
+        else:
+            ft = "Random Failure"
+
+        return prob, ft
+
+    else:
+        # ── Rule-based fallback ────────────────────────────────────────────────
+        score = 0
+        if kau > 200:   score += 40
+        elif kau > 150: score += 20
+        if tor > 60:    score += 25
+        elif tor > 45:  score += 12
+        if sp > 320:    score += 15
+        if kec < 1300:  score += 10
+        if su > 305:    score += 10
+        prob = min(score, 99)
+        if kau > 180 and tor > 60: ft = "Tool Wear Failure"
+        elif sp > 325:             ft = "Heat Dissipation Failure"
+        elif kec < 1100:           ft = "Power Failure"
+        else:                      ft = "Random Failure"
+        return prob, ft
+
+
+def get_feature_importance():
+    """
+    Ambil feature importance dari model jika tersedia.
+    Fallback ke nilai hardcode jika model tidak ada.
+    Returns: list of (nama, pct) sorted descending
+    """
+    label_map = {
+        "suhu_udara":   "Suhu Udara",
+        "suhu_proses":  "Suhu Proses",
+        "kecepatan":    "RPM",
+        "torsi":        "Torsi",
+        "keausan_alat": "Keausan Alat",
+        # Nama alternatif yang mungkin dipakai saat training (AI4I dataset)
+        "Air temperature [K]":          "Suhu Udara",
+        "Process temperature [K]":      "Suhu Proses",
+        "Rotational speed [rpm]":       "RPM",
+        "Torque [Nm]":                  "Torsi",
+        "Tool wear [min]":              "Keausan Alat",
+    }
+
+    if model is not None and hasattr(model, "feature_importances_"):
+        importances = model.feature_importances_
+
+        # Gunakan feature_names dari .pkl jika ada, fallback ke urutan default
+        names = feature_names if feature_names is not None else [
+            "suhu_udara", "suhu_proses", "kecepatan", "torsi", "keausan_alat"
+        ]
+
+        # Normalisasi ke 0–100
+        max_imp = max(importances) if max(importances) > 0 else 1
+        pairs   = []
+        for fname, imp in zip(names, importances):
+            display = label_map.get(fname, fname)
+            pct     = int(round(imp / max_imp * 100))
+            pairs.append((display, pct))
+
+        # Sort descending
+        pairs.sort(key=lambda x: x[1], reverse=True)
+        return pairs[:5]   # top 5
+
+    # Hardcode fallback
+    return [
+        ("Keausan Alat", 88),
+        ("Torsi",        62),
+        ("Suhu Proses",  45),
+        ("RPM",          28),
+        ("Suhu Udara",   14),
+    ]
+
 
 def get_level(p):
-    if p >= 70: return "Kritis",   "kritis"
+    if p >= 70: return "Kritis",    "kritis"
     if p >= 40: return "Peringatan","warning"
     return "Normal", "normal"
 
@@ -74,9 +180,10 @@ def biz_info(p):
     return "Rp 0", "—", "Tidak diperlukan"
 
 # ── Hitung nilai ───────────────────────────────────────────────────────────────
-prob, failure_type           = predict(suhu_udara, suhu_proses, kecepatan, torsi, keausan_alat)
-label, level                 = get_level(prob)
-cost, durasi, rekomendasi    = biz_info(prob)
+prob, failure_type        = predict(suhu_udara, suhu_proses, kecepatan, torsi, keausan_alat)
+label, level              = get_level(prob)
+cost, durasi, rekomendasi = biz_info(prob)
+fi_data                   = get_feature_importance()
 
 STATUS_CLR = {"normal": "#4ade80", "warning": "#facc15", "danger": "#f87171"}
 
@@ -154,20 +261,17 @@ col1, col2 = st.columns([1, 1])
 
 # ── GAUGE ──────────────────────────────────────────────────────────────────────
 with col1:
-    # Card open
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
         'padding:16px 20px;margin-bottom:14px;">',
         unsafe_allow_html=True,
     )
-    # Card title
     st.markdown(
         '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
         'text-transform:uppercase;margin-bottom:14px;">Probabilitas Kegagalan</div>',
         unsafe_allow_html=True,
     )
 
-    # Gauge chart
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=prob,
@@ -193,15 +297,14 @@ with col1:
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font={"color": "#e0e0e0"},
     )
-    fig.add_annotation(x=0.12, y=0.12, text="Aman",             showarrow=False,
+    fig.add_annotation(x=0.12, y=0.12, text="Aman",              showarrow=False,
                        font=dict(size=10, color="#6b7280"), xref="paper", yref="paper")
-    fig.add_annotation(x=0.88, y=0.12, text="Kritis",           showarrow=False,
+    fig.add_annotation(x=0.88, y=0.12, text="Kritis",            showarrow=False,
                        font=dict(size=10, color="#6b7280"), xref="paper", yref="paper")
     fig.add_annotation(x=0.50, y=0.02, text="probabilitas gagal", showarrow=False,
                        font=dict(size=10, color="#6b7280"), xref="paper", yref="paper")
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    # Tipe kegagalan
     st.markdown(
         f'<div style="background:#12151f;border:1px solid #2a2d3a;border-radius:8px;'
         f'            padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:6px;">'
@@ -213,13 +316,11 @@ with col1:
         f'</div>',
         unsafe_allow_html=True,
     )
-    # Card close
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── BISNIS + FEATURE IMPORTANCE ───────────────────────────────────────────────
 with col2:
 
-    # --- Estimasi Dampak Bisnis: card header ---
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
         'padding:16px 20px;margin-bottom:14px;">',
@@ -231,7 +332,6 @@ with col2:
         unsafe_allow_html=True,
     )
 
-    # Row 1 — Downtime cost
     st.markdown(
         f'<div style="display:flex;justify-content:space-between;align-items:center;'
         f'            padding:8px 0;border-bottom:1px solid #2a2d3a;font-size:13px;">'
@@ -240,7 +340,6 @@ with col2:
         f'</div>',
         unsafe_allow_html=True,
     )
-    # Row 2 — Durasi
     st.markdown(
         f'<div style="display:flex;justify-content:space-between;align-items:center;'
         f'            padding:8px 0;border-bottom:1px solid #2a2d3a;font-size:13px;">'
@@ -249,7 +348,6 @@ with col2:
         f'</div>',
         unsafe_allow_html=True,
     )
-    # Row 3 — Rekomendasi
     st.markdown(
         f'<div style="display:flex;justify-content:space-between;align-items:center;'
         f'            padding:8px 0;font-size:13px;">'
@@ -260,7 +358,6 @@ with col2:
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Feature Importance: card header ---
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
         'padding:16px 20px;margin-bottom:14px;">',
@@ -272,15 +369,8 @@ with col2:
         unsafe_allow_html=True,
     )
 
-    # Setiap bar dibuat dengan st.columns — TIDAK ada string embedding
-    features = [
-        ("Keausan alat", 88),
-        ("Torsi",        62),
-        ("Suhu proses",  45),
-        ("RPM",          28),
-        ("Suhu udara",   14),
-    ]
-    for fname, fpct in features:
+    # fi_data berasal dari model asli atau fallback hardcode
+    for fname, fpct in fi_data:
         fa, fb = st.columns([4, 1])
         with fa:
             st.markdown(
@@ -323,7 +413,6 @@ sensors = [
      "icon_bg": "rgba(220,38,38,0.15)"},
 ]
 
-# Card header STATUS SENSOR
 st.markdown(
     '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
     'padding:16px 20px;margin-bottom:14px;">',
