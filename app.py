@@ -263,9 +263,10 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-        'padding:16px 20px;margin-bottom:14px;">'
+        'padding:16px 20px 8px 20px;margin-bottom:14px;">'
         '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
-        'text-transform:uppercase;margin-bottom:14px;">Probabilitas Kegagalan</div>',
+        'text-transform:uppercase;">Probabilitas Kegagalan</div>'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -313,72 +314,53 @@ with col1:
         f'</div>',
         unsafe_allow_html=True,
     )
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ── BISNIS + FEATURE IMPORTANCE ───────────────────────────────────────────────
 with col2:
 
+    # --- Card Estimasi Dampak Bisnis (satu st.markdown, konten lengkap) ---
     st.markdown(
-        '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-        'padding:16px 20px;margin-bottom:14px;">'
-        '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
-        'text-transform:uppercase;margin-bottom:14px;">Estimasi Dampak Bisnis</div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
+        f'<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
+        f'padding:16px 20px;margin-bottom:14px;">'
+        f'<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
+        f'text-transform:uppercase;margin-bottom:14px;">Estimasi Dampak Bisnis</div>'
         f'<div style="display:flex;justify-content:space-between;align-items:center;'
-        f'            padding:8px 0;border-bottom:1px solid #2a2d3a;font-size:13px;">'
-        f'  <span style="color:#9ca3af;">Downtime cost</span>'
-        f'  <span style="color:{cost_clr};font-weight:600;">{cost}</span>'
+        f'padding:8px 0;border-bottom:1px solid #2a2d3a;font-size:13px;">'
+        f'<span style="color:#9ca3af;">Downtime cost</span>'
+        f'<span style="color:{cost_clr};font-weight:600;">{cost}</span></div>'
+        f'<div style="display:flex;justify-content:space-between;align-items:center;'
+        f'padding:8px 0;border-bottom:1px solid #2a2d3a;font-size:13px;">'
+        f'<span style="color:#9ca3af;">Est. durasi downtime</span>'
+        f'<span style="color:#e0e0e0;font-weight:600;">{durasi}</span></div>'
+        f'<div style="display:flex;justify-content:space-between;align-items:center;'
+        f'padding:8px 0;font-size:13px;">'
+        f'<span style="color:#9ca3af;">Rekomendasi tindakan</span>'
+        f'<span style="color:{rek_clr};font-weight:600;">{rekomendasi}</span></div>'
         f'</div>',
         unsafe_allow_html=True,
     )
-    st.markdown(
-        f'<div style="display:flex;justify-content:space-between;align-items:center;'
-        f'            padding:8px 0;border-bottom:1px solid #2a2d3a;font-size:13px;">'
-        f'  <span style="color:#9ca3af;">Est. durasi downtime</span>'
-        f'  <span style="color:#e0e0e0;font-weight:600;">{durasi}</span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div style="display:flex;justify-content:space-between;align-items:center;'
-        f'            padding:8px 0;font-size:13px;">'
-        f'  <span style="color:#9ca3af;">Rekomendasi tindakan</span>'
-        f'  <span style="color:{rek_clr};font-weight:600;">{rekomendasi}</span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown(
-        '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-        'padding:16px 20px;margin-bottom:14px;">'
-        '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
-        'text-transform:uppercase;margin-bottom:14px;">Feature Importance</div>',
-        unsafe_allow_html=True,
-    )
-
-    # fi_data berasal dari model asli atau fallback hardcode
+    # --- Card Feature Importance (satu st.markdown, konten lengkap) ---
+    fi_rows = ""
     for fname, fpct in fi_data:
-        fa, fb = st.columns([4, 1])
-        with fa:
-            st.markdown(
-                f'<div style="font-size:12px;color:#9ca3af;margin-bottom:3px;">{fname}</div>'
-                f'<div style="background:#2a2d3a;border-radius:4px;height:6px;margin-bottom:8px;">'
-                f'  <div style="height:6px;border-radius:4px;background:#4f6ef7;width:{fpct}%;"></div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-        with fb:
-            st.markdown(
-                f'<div style="font-size:12px;color:#e0e0e0;font-weight:600;'
-                f'text-align:right;padding-top:1px;">{fpct}%</div>',
-                unsafe_allow_html=True,
-            )
-
-    st.markdown('</div>', unsafe_allow_html=True)
+        fi_rows += (
+            f'<div style="margin-bottom:10px;">'
+            f'<div style="display:flex;justify-content:space-between;'
+            f'font-size:12px;color:#9ca3af;margin-bottom:4px;">'
+            f'<span>{fname}</span><span style="color:#e0e0e0;font-weight:600;">{fpct}%</span></div>'
+            f'<div style="background:#2a2d3a;border-radius:4px;height:6px;">'
+            f'<div style="height:6px;border-radius:4px;background:#4f6ef7;width:{fpct}%;"></div>'
+            f'</div></div>'
+        )
+    st.markdown(
+        f'<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
+        f'padding:16px 20px;margin-bottom:14px;">'
+        f'<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
+        f'text-transform:uppercase;margin-bottom:14px;">Feature Importance</div>'
+        f'{fi_rows}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 # ── ROW 2: STATUS SENSOR ──────────────────────────────────────────────────────
 sensors = [
@@ -406,11 +388,12 @@ sensors = [
 
 st.markdown(
     '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-    'padding:16px 20px;margin-bottom:14px;">'
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+    'padding:12px 20px 4px 20px;margin-bottom:4px;">'
+    '<div style="display:flex;justify-content:space-between;align-items:center;">'
     '  <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
     '              text-transform:uppercase;">Status Sensor</div>'
     '  <span style="font-size:11px;color:#6b7280;">5 parameter aktif</span>'
+    '</div>'
     '</div>',
     unsafe_allow_html=True,
 )
@@ -459,8 +442,6 @@ for idx, s in enumerate(sensors):
             '<hr style="border:none;border-top:1px solid #1f2230;margin:2px 0;">',
             unsafe_allow_html=True,
         )
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown(
