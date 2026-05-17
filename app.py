@@ -263,10 +263,7 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-        'padding:16px 20px;margin-bottom:14px;">',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
+        'padding:16px 20px;margin-bottom:14px;">'
         '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
         'text-transform:uppercase;margin-bottom:14px;">Probabilitas Kegagalan</div>',
         unsafe_allow_html=True,
@@ -323,10 +320,7 @@ with col2:
 
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-        'padding:16px 20px;margin-bottom:14px;">',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
+        'padding:16px 20px;margin-bottom:14px;">'
         '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
         'text-transform:uppercase;margin-bottom:14px;">Estimasi Dampak Bisnis</div>',
         unsafe_allow_html=True,
@@ -360,10 +354,7 @@ with col2:
 
     st.markdown(
         '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-        'padding:16px 20px;margin-bottom:14px;">',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
+        'padding:16px 20px;margin-bottom:14px;">'
         '<div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
         'text-transform:uppercase;margin-bottom:14px;">Feature Importance</div>',
         unsafe_allow_html=True,
@@ -415,10 +406,7 @@ sensors = [
 
 st.markdown(
     '<div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:10px;'
-    'padding:16px 20px;margin-bottom:14px;">',
-    unsafe_allow_html=True,
-)
-st.markdown(
+    'padding:16px 20px;margin-bottom:14px;">'
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
     '  <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;color:#6b7280;'
     '              text-transform:uppercase;">Status Sensor</div>'
