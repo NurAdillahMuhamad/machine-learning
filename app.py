@@ -1,6 +1,20 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
+import json
+import os
+
+# ── Baca data sensor dari Node-RED (via file JSON) ────────────────────────────
+def baca_sensor_nodered():
+    path = "sensor_data.json"
+    try:
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
+            return data
+    except Exception:
+        pass
+    return None
 
 # ── Load model (sekali saja, di-cache) ────────────────────────────────────────
 @st.cache_resource
@@ -43,15 +57,48 @@ section[data-testid="stSidebar"] { background-color: #1a1d27 !important; }
 </style>
 """, unsafe_allow_html=True)
 
+# ── Cek data dari Node-RED ────────────────────────────────────────────────────
+nodered_data = baca_sensor_nodered()
+mode_nodered = nodered_data is not None
+
+# ── Auto-refresh setiap 1 detik kalau Node-RED aktif ─────────────────────────
+if mode_nodered:
+    st.empty()  # trigger re-render
+    import time
+    time.sleep(0.1)
+    st.rerun()
+
 # ── SIDEBAR ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## ⚙️ Input Sensor")
     st.markdown("---")
-    suhu_udara   = st.slider("🌡️ Suhu Udara (K)",          270,  320, 300)
-    suhu_proses  = st.slider("🔥 Suhu Proses (K)",          300,  340, 310)
-    kecepatan    = st.slider("⚡ Kecepatan Putaran (RPM)", 1000, 3000, 1202)
-    torsi        = st.slider("🔩 Torsi (Nm)",               10,   100,  70)
-    keausan_alat = st.slider("🔧 Keausan Alat (min)",         0,   300, 220)
+
+    if mode_nodered:
+        # Tampilkan nilai dari Node-RED (read-only)
+        suhu_udara   = nodered_data.get("suhu_udara",   300)
+        suhu_proses  = nodered_data.get("suhu_proses",  310)
+        kecepatan    = nodered_data.get("kecepatan",   1202)
+        torsi        = nodered_data.get("torsi",         70)
+        keausan_alat = nodered_data.get("keausan_alat", 220)
+
+        st.markdown(
+            '<div style="font-size:11px;color:#4ade80;text-align:center;'
+            'margin-bottom:12px;">🔴 Live — Node-RED aktif</div>',
+            unsafe_allow_html=True,
+        )
+        st.metric("🌡️ Suhu Udara (K)",       f"{suhu_udara} K")
+        st.metric("🔥 Suhu Proses (K)",       f"{suhu_proses} K")
+        st.metric("⚡ Kecepatan (RPM)",       f"{kecepatan} RPM")
+        st.metric("🔩 Torsi (Nm)",            f"{torsi} Nm")
+        st.metric("🔧 Keausan Alat (min)",    f"{keausan_alat} min")
+    else:
+        # Mode manual — slider seperti biasa
+        suhu_udara   = st.slider("🌡️ Suhu Udara (K)",          270,  320, 300)
+        suhu_proses  = st.slider("🔥 Suhu Proses (K)",          300,  340, 310)
+        kecepatan    = st.slider("⚡ Kecepatan Putaran (RPM)", 1000, 3000, 1202)
+        torsi        = st.slider("🔩 Torsi (Nm)",               10,   100,  70)
+        keausan_alat = st.slider("🔧 Keausan Alat (min)",         0,   300, 220)
+
     st.markdown("---")
     st.button("🔍 Prediksi Sekarang", use_container_width=True)
 
