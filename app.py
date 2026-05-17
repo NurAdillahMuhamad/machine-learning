@@ -61,13 +61,6 @@ section[data-testid="stSidebar"] { background-color: #1a1d27 !important; }
 nodered_data = baca_sensor_nodered()
 mode_nodered = nodered_data is not None
 
-# ── Auto-refresh setiap 1 detik kalau Node-RED aktif ─────────────────────────
-if mode_nodered:
-    st.empty()  # trigger re-render
-    import time
-    time.sleep(0.1)
-    st.rerun()
-
 # ── SIDEBAR ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## ⚙️ Input Sensor")
@@ -489,6 +482,12 @@ for idx, s in enumerate(sensors):
             '<hr style="border:none;border-top:1px solid #1f2230;margin:2px 0;">',
             unsafe_allow_html=True,
         )
+
+# ── Auto-refresh kalau Node-RED aktif ─────────────────────────────────────────
+if mode_nodered:
+    import time
+    time.sleep(1)
+    st.rerun()
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown(
